@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 認証情報（Google Cloudサービスアカウント鍵・Gmail OAuthトークンなど）
+credentials/
+*.json
+!package.json
+!vercel.json
+
+# 環境変数
+.env
+
+# OS
+.DS_Store
+.vercel
+.env*

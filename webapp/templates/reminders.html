@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}リマインド - 接客記録{% endblock %}
+{% block content %}
+<h1>今日のリマインド</h1>
+<p class="page-sub">{{ today.isoformat() }}</p>
+
+<div class="card-title" style="margin-bottom:8px;">連絡すべき客</div>
+{% if targets %}
+  {% for r in targets %}
+  <div class="card">
+    <div class="card-title">{{ r.name }} <span class="tag {{ 'trunk' if r.is_own_customer else 'branch' }}">{{ '自客' if r.is_own_customer else '他客' }}</span></div>
+    <div class="card-meta">
+      <span>連絡頻度 {{ r.contact_frequency_days if r.contact_frequency_days is not none else '(既定値)' }}日</span>
+      <span class="num">
+        {% if r.last_contact_date %}
+          {{ (today - r.last_contact_date).days }}日経過
+        {% else %}
+          未連絡
+        {% endif %}
+      </span>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <p class="empty">今日連絡すべき客はいません</p>
+{% endif %}
+
+<div class="card-title" style="margin:24px 0 8px;">誕生日が近い客</div>
+{% if birthdays %}
+  {% for r in birthdays %}
+  <div class="card">
+    <div class="card-title">{{ r.name }} <span class="tag {{ 'trunk' if r.is_own_customer else 'branch' }}">{{ '自客' if r.is_own_customer else '他客' }}</span></div>
+    <div class="card-meta">
+      <span>誕生日</span>
+      <span class="num">{{ r.birthday }}</span>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <p class="empty">近日誕生日の客はいません</p>
+{% endif %}
+
+<a class="btn" href="{{ url_for('routes.input_form') }}">今日の来店を入力する</a>
+{% endblock %}

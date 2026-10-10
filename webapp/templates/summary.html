@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}今月の実績 - 接客記録{% endblock %}
+{% block content %}
+<h1>今月の実績</h1>
+
+{% if summary %}
+<p class="page-sub">{{ summary.start_date.strftime('%Y年%-m月%-d日') }} 〜 {{ summary.end_date.strftime('%-m月%-d日') }}</p>
+
+<div class="card">
+  <div class="card-title">売上</div>
+  <div class="card-meta">
+    <span>期間合計</span>
+    <span class="num">¥{{ "{:,}".format(summary.total_sales) }}</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">同伴回数</div>
+  <div class="card-meta">
+    <span>期間合計</span>
+    <span class="num">{{ summary.accompanied_count }}回</span>
+  </div>
+</div>
+
+<div class="card-title" style="margin:24px 0 8px;">同伴の記録</div>
+{% if summary.accompanied_visits %}
+  {% for v in summary.accompanied_visits %}
+  <div class="list-row">
+    <div class="name">{{ v.date.isoformat() }}　{{ v.customer_names|join('、') }}</div>
+    <div class="sub">{% if v.staff_in_charge %}係: {{ v.staff_in_charge }}{% else %}自分が同伴{% endif %}</div>
+    {% if v.accompany_note %}<div class="sub">{{ v.accompany_note }}</div>{% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <p class="empty">この期間の同伴記録はまだありません</p>
+{% endif %}
+
+{% if trend %}
+<p class="page-sub" style="margin-top:28px;">月ごとの推移</p>
+
+<div class="chart-card">
+  <div class="chart-title">売上（月ごと）</div>
+  <div class="bars">
+    {% for t in trend %}
+    <div class="bar-col {{ 'current' if t.is_current }}">
+      <div class="tooltip">¥{{ "{:,}".format(t.sales) }}{{ '（今月）' if t.is_current }}</div>
+      <div class="bar" style="height:{{ t.sales_pct }}%;"></div>
+      <div class="bar-label">{{ t.label }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-title">同伴回数（月ごと）</div>
+  <div class="bars">
+    {% for t in trend %}
+    <div class="bar-col {{ 'current' if t.is_current }}">
+      <div class="tooltip">{{ t.count }}回{{ '（今月）' if t.is_current }}</div>
+      <div class="bar" style="height:{{ t.count_pct }}%;"></div>
+      <div class="bar-label">{{ t.label }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if past_months %}
+<p class="page-sub" style="margin-top:28px;">過去の実績</p>
+
+<div class="month-tabs" id="month-tabs">
+  {% for y, m in past_months %}
+  <button type="button" class="month-chip {{ 'active' if loop.last }}" data-month="{{ y }}-{{ '%02d'|format(m) }}">{{ y }}年{{ m }}月</button>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-title">売上</div>
+  <div class="card-meta"><span id="past-month-label"></span><span class="num" id="past-sales"></span></div>
+</div>
+<div class="card">
+  <div class="card-title">同伴回数</div>
+  <div class="card-meta"><span id="past-month-label2"></span><span class="num" id="past-count"></span></div>
+</div>
+
+<div class="card-title" style="margin:20px 0 8px;">同伴の記録（<span id="past-month-label3"></span>）</div>
+<div id="past-visits"></div>
+
+<script>
+  var pastMonthsData = {{ past_months_json|tojson }};
+
+  function renderPastMonth(key) {
+    var d = pastMonthsData[key];
+    if (!d) return;
+    document.getElementById('past-month-label').textContent = d.label;
+    document.getElementById('past-month-label2').textContent = d.label;
+    document.getElementById('past-month-label3').textContent = d.label;
+    document.getElementById('past-sales').textContent = '¥' + d.sales.toLocaleString();
+    document.getElementById('past-count').textContent = d.count + '回';
+    var container = document.getElementById('past-visits');
+    if (d.visits.length === 0) {
+      container.innerHTML = '<p class="empty">この月の同伴記録はありません</p>';
+      return;
+    }
+    container.innerHTML = d.visits.map(function (v) {
+      var detail = v.detail ? '<div class="sub">' + v.detail + '</div>' : '';
+      return '<div class="list-row"><div class="name">' + v.date + '　' + v.names + '</div><div class="sub">' + v.note + '</div>' + detail + '</div>';
+    }).join('');
+  }
+
+  document.querySelectorAll('.month-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      document.querySelectorAll('.month-chip').forEach(function (c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      renderPastMonth(chip.dataset.month);
+    });
+  });
+
+  var initial = document.querySelector('.month-chip.active');
+  if (initial) renderPastMonth(initial.dataset.month);
+</script>
+{% endif %}
+
+{% else %}
+  <p class="empty">期間が設定されていません。<a href="{{ url_for('routes.settings') }}">設定画面</a>で期間を作成してください。</p>
+{% endif %}
+{% endblock %}

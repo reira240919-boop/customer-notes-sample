@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ r.name }} - 接客記録{% endblock %}
+{% block content %}
+<h1>{{ r.name }}</h1>
+<p class="page-sub">
+  {{ '自客' if r.is_own_customer else '他客' }}
+  {% if r.staff_in_charge %} ／ 係: {{ r.staff_in_charge }}{% endif %}
+  ／ 来店 {{ r.visit_dates|length }}回
+  {% if r.last_contact_date %} ／ 最終連絡 {{ r.last_contact_date.isoformat() }}{% endif %}
+</p>
+
+<p class="page-sub" style="margin-top:0;">プロフィール</p>
+<form method="post" action="{{ url_for('routes.update_profile', customer_id=r.customer_id) }}">
+  <label for="company">会社名</label>
+  <input type="text" id="company" name="company" value="{{ r.company }}" placeholder="例: ○○株式会社">
+
+  <label for="position">役職</label>
+  <input type="text" id="position" name="position" value="{{ r.position }}" placeholder="例: 部長">
+
+  <label for="birthday">誕生日（MM-DD）</label>
+  <input type="text" id="birthday" name="birthday" value="{{ r.birthday or '' }}" placeholder="例: 08-10">
+
+  <label for="profile_memo">メモ</label>
+  <textarea id="profile_memo" name="profile_memo">{{ r.profile_memo }}</textarea>
+
+  <button class="btn secondary" type="submit">保存する</button>
+</form>
+
+<p class="page-sub" style="margin-top:28px;">来店ごとのメモ</p>
+<div class="card">{{ r.memo or 'まだメモがありません' }}</div>
+
+<a class="btn secondary" href="{{ url_for('routes.customers') }}" style="margin-top:24px;">一覧に戻る</a>
+{% endblock %}

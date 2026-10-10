@@ -1,0 +1,14 @@
+{
+  "builds": [
+    {
+      "src": "wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": ["webapp/templates/**", "webapp/static/**"]
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "wsgi.py" }
+  ]
+}

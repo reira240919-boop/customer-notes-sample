@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}顧客一覧 - 接客記録{% endblock %}
+{% block content %}
+<h1>顧客マスタ</h1>
+
+<form method="get" action="{{ url_for('routes.search') }}" class="search-box">
+  <input type="text" name="q" placeholder="名前で検索">
+  <button type="submit">検索</button>
+</form>
+
+<p class="page-sub" style="margin-top:20px;">{{ total }}件</p>
+
+{% if groups %}
+  <div class="group-tabs" id="group-tabs">
+    {% for g in groups %}
+      <button type="button" class="group-chip {{ 'active' if loop.first }}" data-group="{{ g.key }}">
+        {{ g.label }}<span class="count">{{ g.records|length }}</span>
+      </button>
+    {% endfor %}
+  </div>
+
+  {% for g in groups %}
+  <div class="group-panel {{ 'active' if loop.first }}" id="panel-{{ g.key }}">
+    {% for r in g.records %}
+    <div class="card">
+      <a href="{{ url_for('routes.customer_detail', customer_id=r.customer_id) }}" style="text-decoration:none; color:inherit;">
+        <div class="card-title">
+          {{ r.name }}
+          <span class="tag {{ 'trunk' if r.is_own_customer else 'branch' }}">{{ '自客' if r.is_own_customer else '他客' }}</span>
+          {% if r.introduced_by %}<span class="tag branch">紹介元: {{ r.introduced_by }}</span>{% endif %}
+        </div>
+      </a>
+      <div class="list-row" style="background:transparent; padding:0; margin:0;">
+        <div class="sub">
+          {% if r.visit_dates %}最終来店 {{ r.visit_dates|max }} ／{% endif %}
+          来店 {{ r.visit_dates|length }}回
+          {% if r.last_contact_date %} ／ 最終連絡 {{ r.last_contact_date.isoformat() }}{% endif %}
+          {% if r.birthday %} ／ 誕生日 {{ r.birthday }}{% endif %}
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('routes.update_frequency', customer_id=r.customer_id) }}" style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+        <label style="margin:0; flex-shrink:0;">連絡頻度</label>
+        <input type="number" name="frequency_days" min="1" placeholder="既定値" value="{{ r.contact_frequency_days or '' }}" style="flex:1;">
+        <button class="btn secondary" type="submit" style="margin:0; width:auto; padding:11px 14px;">保存</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% else %}
+  <p class="empty">顧客がまだ登録されていません</p>
+{% endif %}
+
+<script>
+  document.querySelectorAll('.group-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      document.querySelectorAll('.group-chip').forEach(function (c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      document.querySelectorAll('.group-panel').forEach(function (p) { p.classList.remove('active'); });
+      document.getElementById('panel-' + chip.dataset.group).classList.add('active');
+    });
+  });
+</script>
+{% endblock %}

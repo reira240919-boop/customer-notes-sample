@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}ログイン - 接客記録{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <h1>接客記録</h1>
+  <form method="post">
+    <label for="password">パスワード</label>
+    <input type="password" id="password" name="password" autofocus required>
+    <button class="btn" type="submit">ログイン</button>
+  </form>
+  {% if error %}<p class="empty">{{ error }}</p>{% endif %}
+</div>
+{% endblock %}

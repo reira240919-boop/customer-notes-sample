@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja" data-theme="{{ session.get('theme', 'dark-gold') }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="接客記録">
+  <title>{% block title %}接客記録{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flash">{% for m in messages %}<p>{{ m }}</p>{% endfor %}</div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% if session.get('logged_in') %}
+  <nav class="bottom-nav">
+    <a class="nav-item {{ 'active' if request.endpoint == 'routes.reminders' }}" href="{{ url_for('routes.reminders') }}"><span class="dot"></span>リマインド</a>
+    <a class="nav-item {{ 'active' if request.endpoint == 'routes.input_form' }}" href="{{ url_for('routes.input_form') }}"><span class="dot"></span>入力</a>
+    <a class="nav-item {{ 'active' if request.endpoint == 'routes.customers' }}" href="{{ url_for('routes.customers') }}"><span class="dot"></span>一覧</a>
+    <a class="nav-item {{ 'active' if request.endpoint in ['routes.records', 'routes.record_edit'] }}" href="{{ url_for('routes.records') }}"><span class="dot"></span>記録</a>
+    <a class="nav-item {{ 'active' if request.endpoint == 'routes.calendar_view' }}" href="{{ url_for('routes.calendar_view') }}"><span class="dot"></span>予定</a>
+    <a class="nav-item {{ 'active' if request.endpoint == 'routes.summary' }}" href="{{ url_for('routes.summary') }}"><span class="dot"></span>実績</a>
+    <a class="nav-item {{ 'active' if request.endpoint == 'routes.settings' }}" href="{{ url_for('routes.settings') }}"><span class="dot"></span>設定</a>
+  </nav>
+  {% endif %}
+</body>
+</html>

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}検索 - 接客記録{% endblock %}
+{% block content %}
+<h1>顧客検索</h1>
+<p class="page-sub">来店履歴・同席者を調べる</p>
+
+<form method="get" class="search-box">
+  <input type="text" name="q" value="{{ query }}" placeholder="名前で検索">
+  <button type="submit">検索</button>
+</form>
+
+{% if query and not results %}
+  <p class="empty">「{{ query }}」に一致する客がいません</p>
+{% endif %}
+
+{% for r in results %}
+  <div class="card" style="margin-top:20px;">
+    <div class="card-title">
+      {{ r.name }}
+      <span class="tag {{ 'trunk' if r.record.is_own_customer else 'branch' }}">{{ '自客' if r.record.is_own_customer else '他客' }}</span>
+      {% if r.record.introduced_by %}<span class="tag branch">紹介元: {{ r.record.introduced_by }}</span>{% endif %}
+    </div>
+    {% for visit in r.history %}
+      <div class="list-row">
+        <div class="name">
+          {{ visit.date.isoformat() }}
+          {% if visit.accompanied %}<span class="tag branch">同伴</span>{% endif %}
+        </div>
+        <div class="sub">{% if visit.companions %}同席: {{ visit.companions|join('、') }}{% else %}同席者なし{% endif %}</div>
+        {% if visit.sales_amount %}<div class="sub">売上: ¥{{ "{:,}".format(visit.sales_amount) }}</div>{% endif %}
+        {% if visit.accompany_note %}<div class="sub">{{ visit.accompany_note }}</div>{% endif %}
+      </div>
+    {% else %}
+      <p class="empty">来店記録がありません</p>
+    {% endfor %}
+  </div>
+{% endfor %}
+{% endblock %}

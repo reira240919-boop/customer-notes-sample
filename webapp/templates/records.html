@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}来店記録 - 接客記録{% endblock %}
+{% block content %}
+<h1>来店記録</h1>
+
+{% if months %}
+<div class="month-tabs" id="month-tabs">
+  {% for y, m in months %}
+  {% set key = y ~ '-' ~ '%02d'|format(m) %}
+  <button type="button" class="month-chip {{ 'active' if loop.last }}" data-month="{{ key }}">{{ y }}年{{ m }}月</button>
+  {% endfor %}
+</div>
+
+{% for y, m in months %}
+  {% set key = y ~ '-' ~ '%02d'|format(m) %}
+  <div class="month-panel" data-month="{{ key }}" style="{{ '' if loop.last else 'display:none;' }}">
+    <p class="page-sub">{{ y }}年{{ m }}月：{{ grouped[key]|length }}件</p>
+    {% for tab, row_number, entry in grouped[key] %}
+    <div class="list-row record-row">
+      <div class="row-head">
+        <div class="name">
+          {{ entry.date.isoformat() }}　{{ entry.customer_names|join('、') }}
+          <span class="tag {{ 'trunk' if entry.is_own_customer else 'branch' }}">{{ '自客' if entry.is_own_customer else '他客' }}</span>
+        </div>
+        <a class="row-edit" href="{{ url_for('routes.record_edit', tab=tab, row_number=row_number) }}">修正する ›</a>
+      </div>
+      {% if entry.sales_amount or entry.accompanied %}
+      <div class="sub">
+        {% if entry.sales_amount %}売上: ¥{{ "{:,}".format(entry.sales_amount) }}{% endif %}
+        {% if entry.accompanied %} ／ 同伴{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+
+<script>
+  document.querySelectorAll('.month-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      document.querySelectorAll('.month-chip').forEach(function (c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      document.querySelectorAll('.month-panel').forEach(function (panel) {
+        panel.style.display = panel.dataset.month === chip.dataset.month ? 'block' : 'none';
+      });
+    });
+  });
+</script>
+{% else %}
+  <p class="empty">来店記録がまだありません</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}来店記録の修正 - 接客記録{% endblock %}
+{% block content %}
+<h1>来店記録を修正</h1>
+
+<form method="post">
+  <label class="page-sub" style="display:block; margin-bottom:6px;">区分</label>
+  <div style="display:flex; gap:16px; margin-bottom:16px;">
+    <label><input type="radio" name="customer_type" value="own" {{ 'checked' if entry.is_own_customer }} onchange="onCustomerTypeChange()"><span>自客</span></label>
+    <label><input type="radio" name="customer_type" value="other" {{ 'checked' if not entry.is_own_customer }} onchange="onCustomerTypeChange()"><span>他客</span></label>
+  </div>
+
+  <label for="date">日付</label>
+  <input type="date" id="date" name="date" value="{{ entry.date.isoformat() }}" required>
+
+  <div id="other-only-1" style="{{ '' if not entry.is_own_customer else 'display:none;' }}">
+    <label for="staff_in_charge">係</label>
+    <select id="staff_in_charge" name="staff_in_charge">
+      {% for s in staff_names %}<option value="{{ s }}" {{ 'selected' if s == entry.staff_in_charge }}>{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+
+  <label for="names">名前（複数はカンマ区切り）</label>
+  <input type="text" id="names" name="names" value="{{ entry.customer_names|join(',') }}" required>
+
+  <div id="other-only-2" style="{{ '' if not entry.is_own_customer else 'display:none;' }}">
+    <label for="new_or_existing">新規既存</label>
+    <select id="new_or_existing" name="new_or_existing">
+      <option value="既存" {{ 'selected' if entry.new_or_existing == '既存' }}>既存</option>
+      <option value="新規" {{ 'selected' if entry.new_or_existing == '新規' }}>新規</option>
+    </select>
+  </div>
+
+  <label class="check-label">
+    <input type="checkbox" id="has_contact" name="has_contact" value="1" {{ 'checked' if entry.has_contact }}>
+    <span>連絡先</span>
+  </label>
+
+  <label class="page-sub" style="margin:20px 0 4px; display:block;">同伴者</label>
+  <div id="companion-rows">
+    {% for c in entry.companions %}
+    <div class="companion-row">
+      <input type="text" name="companion_name_{{ loop.index0 }}" value="{{ c.name }}" style="margin-bottom:6px;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <label class="check-label" style="margin:0;"><input type="checkbox" name="companion_contact_{{ loop.index0 }}" value="1" {{ 'checked' if c.has_contact }}><span>連絡先</span></label>
+        <button type="button" class="btn secondary" style="width:auto; margin:0; padding:8px 14px;" onclick="this.closest('.companion-row').remove()">削除</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="btn secondary" style="margin-top:2px;" onclick="addCompanionRow()">＋ 同伴者を追加</button>
+
+  <label class="check-label" style="margin-top:20px;">
+    <input type="checkbox" id="accompanied" name="accompanied" value="1" onchange="toggleAccompanyNote()" {{ 'checked' if entry.accompanied }}>
+    <span>同伴</span>
+  </label>
+
+  <div id="accompany-note-section" class="accompany-note" style="{{ '' if entry.accompanied else 'display:none;' }}">
+    <div class="hint">同伴の詳細</div>
+    <textarea id="accompany_note" name="accompany_note" placeholder="例: 〇〇（お店の場所）で食事してから来店">{{ entry.accompany_note }}</textarea>
+  </div>
+
+  <label for="sales_amount">売上（円）</label>
+  <input type="number" id="sales_amount" name="sales_amount" min="0" step="1" value="{{ entry.sales_amount if entry.sales_amount is not none else '' }}">
+
+  <label for="last_contact_date">最終連絡日</label>
+  <input type="date" id="last_contact_date" name="last_contact_date" value="{{ entry.last_contact_date.isoformat() if entry.last_contact_date else '' }}">
+
+  <label for="birthday">誕生日（MM-DD）</label>
+  <input type="text" id="birthday" name="birthday" value="{{ entry.birthday or '' }}">
+
+  <label for="memo">メモ</label>
+  <textarea id="memo" name="memo">{{ entry.memo }}</textarea>
+
+  <button class="btn" type="submit">修正を保存する</button>
+</form>
+
+<form method="post" action="{{ url_for('routes.record_delete', tab=tab, row_number=row_number) }}"
+      onsubmit="return confirm('この来店記録を削除します。よろしいですか？')" style="margin-top:12px;">
+  <button class="btn secondary" type="submit" style="color:#c0392b;">この記録を削除する</button>
+</form>
+
+<a class="btn secondary" href="{{ url_for('routes.records') }}" style="margin-top:12px;">一覧に戻る</a>
+
+<script>
+function onCustomerTypeChange() {
+  var isOther = document.querySelector('input[name="customer_type"]:checked').value === 'other';
+  document.getElementById('other-only-1').style.display = isOther ? 'block' : 'none';
+  document.getElementById('other-only-2').style.display = isOther ? 'block' : 'none';
+}
+
+function toggleAccompanyNote() {
+  var checked = document.getElementById('accompanied').checked;
+  document.getElementById('accompany-note-section').style.display = checked ? 'block' : 'none';
+}
+
+var companionIndex = {{ entry.companions|length }};
+function addCompanionRow() {
+  var container = document.getElementById('companion-rows');
+  var i = companionIndex++;
+  var row = document.createElement('div');
+  row.className = 'companion-row';
+  row.innerHTML =
+    '<input type="text" name="companion_name_' + i + '" placeholder="同伴者の名前" style="margin-bottom:6px;">' +
+    '<div style="display:flex; align-items:center; justify-content:space-between;">' +
+    '<label class="check-label" style="margin:0;"><input type="checkbox" name="companion_contact_' + i + '" value="1"><span>連絡先</span></label>' +
+    '<button type="button" class="btn secondary" style="width:auto; margin:0; padding:8px 14px;" onclick="this.closest(\'.companion-row\').remove()">削除</button>' +
+    '</div>';
+  container.appendChild(row);
+}
+</script>
+{% endblock %}

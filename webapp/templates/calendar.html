@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}カレンダー - 接客記録{% endblock %}
+{% block content %}
+<h1>カレンダー</h1>
+
+<div class="cal-nav">
+  <a class="nav-arrow" href="{{ url_for('routes.calendar_view', year=prev_year, month=prev_month) }}">‹</a>
+  <div class="title2">{{ year }}年{{ month }}月</div>
+  <a class="nav-arrow" href="{{ url_for('routes.calendar_view', year=next_year, month=next_month) }}">›</a>
+</div>
+
+<div class="weekday-row">
+  <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+</div>
+
+<div class="day-grid">
+  {% for week in weeks %}
+    {% for cell in week %}
+      {% if cell is none %}
+        <div class="day-cell empty"></div>
+      {% else %}
+        <a class="day-cell {{ 'today' if cell.is_today }} {{ 'selected' if selected and cell.date == selected }}"
+           href="{{ url_for('routes.calendar_view', year=year, month=month, selected=cell.date.isoformat()) }}">
+          <div class="day-num">{{ cell.day }}</div>
+          {% for ev in cell.events[:2] %}
+            <div class="event-pill {{ ev.category }}">{{ ev.label }}</div>
+          {% endfor %}
+        </a>
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+</div>
+
+{% if selected %}
+<div class="event-detail" style="margin-top:14px;">
+  <div class="date-label">{{ selected.month }}月{{ selected.day }}日の予定</div>
+  {% if selected_events %}
+    {% for ev in selected_events %}
+    <div class="event-row">
+      <span class="event-tag {{ ev.category }}">{{ '共通' if ev.category == 'shared' else '個人' }}</span>
+      {{ ev.label }}
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="empty" style="padding:8px 0;">この日の予定はまだありません</p>
+  {% endif %}
+</div>
+
+<p class="page-sub" style="margin-top:16px;">予定を追加</p>
+<div class="sheet">
+  <form method="post" action="{{ url_for('routes.add_plan') }}">
+    <input type="hidden" name="date" value="{{ selected.isoformat() }}">
+    <div class="radio-row">
+      <label><input type="radio" name="kind" value="同伴" checked><span>同伴</span></label>
+      <label><input type="radio" name="kind" value="来店"><span>来店</span></label>
+    </div>
+    <label for="plan-name">お客様の名前</label>
+    <input type="text" id="plan-name" name="name" placeholder="名前を入力" required>
+    <button class="btn" type="submit">この予定を保存する</button>
+  </form>
+</div>
+{% endif %}
+
+<p class="page-sub" style="margin-top:16px;">共通予定を追加</p>
+<div class="sheet">
+  <div class="type-tabs" id="type-tabs">
+    <button type="button" class="type-chip active" data-type="mandatory">強制同伴日</button>
+    <button type="button" class="type-chip" data-type="event">イベント</button>
+    <button type="button" class="type-chip" data-type="meeting">ミーティング</button>
+    <button type="button" class="type-chip" data-type="uniform">新調日</button>
+    <button type="button" class="type-chip" data-type="holiday">連休</button>
+  </div>
+
+  <form method="post" action="{{ url_for('routes.add_event') }}" id="form-mandatory" class="type-form active">
+    <input type="hidden" name="kind" value="強制同伴日">
+    <label>期間</label>
+    <div class="date-range">
+      <input type="date" name="start_date" value="{{ (selected or today).isoformat() }}" required>
+      <span>〜</span>
+      <input type="date" name="end_date" value="{{ (selected or today).isoformat() }}" required>
+    </div>
+    <button class="btn" type="submit">この予定を保存する</button>
+  </form>
+
+  <form method="post" action="{{ url_for('routes.add_event') }}" id="form-event" class="type-form">
+    <input type="hidden" name="kind" value="イベント">
+    <label for="event-kind-select">種類</label>
+    <select id="event-kind-select" name="title_preset" onchange="toggleEventOther(this)">
+      <option value="周年">周年</option>
+      <option value="ママバースデー">ママバースデー</option>
+      <option value="クリスマス">クリスマス</option>
+      <option value="">その他</option>
+    </select>
+    <div id="event-other-input" style="display:none;">
+      <label for="event-other-text">内容</label>
+      <input type="text" id="event-other-text" name="title_custom" placeholder="例: 周年前夜祭">
+    </div>
+    <label>期間</label>
+    <div class="date-range">
+      <input type="date" name="start_date" value="{{ (selected or today).isoformat() }}" required>
+      <span>〜</span>
+      <input type="date" name="end_date" value="{{ (selected or today).isoformat() }}" required>
+    </div>
+    <button class="btn" type="submit">この予定を保存する</button>
+  </form>
+
+  <form method="post" action="{{ url_for('routes.add_event') }}" id="form-meeting" class="type-form">
+    <input type="hidden" name="kind" value="ミーティング">
+    <label>日付</label>
+    <input type="date" name="start_date" value="{{ (selected or today).isoformat() }}" required>
+    <input type="hidden" name="end_date" value="{{ (selected or today).isoformat() }}">
+    <button class="btn" type="submit">この予定を保存する</button>
+  </form>
+
+  <form method="post" action="{{ url_for('routes.add_event') }}" id="form-uniform" class="type-form">
+    <input type="hidden" name="kind" value="新調日">
+    <label>日付</label>
+    <input type="date" name="start_date" value="{{ (selected or today).isoformat() }}" required>
+    <input type="hidden" name="end_date" value="{{ (selected or today).isoformat() }}">
+    <button class="btn" type="submit">この予定を保存する</button>
+  </form>
+
+  <form method="post" action="{{ url_for('routes.add_event') }}" id="form-holiday" class="type-form">
+    <input type="hidden" name="kind" value="連休">
+    <label>期間</label>
+    <div class="date-range">
+      <input type="date" name="start_date" value="{{ (selected or today).isoformat() }}" required>
+      <span>〜</span>
+      <input type="date" name="end_date" value="{{ (selected or today).isoformat() }}" required>
+    </div>
+    <label>名称（任意）</label>
+    <input type="text" name="title" placeholder="例: お盆休み">
+    <button class="btn" type="submit">この予定を保存する</button>
+  </form>
+</div>
+
+<script>
+  document.querySelectorAll('.type-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      document.querySelectorAll('.type-chip').forEach(function (c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      document.querySelectorAll('.type-form').forEach(function (f) { f.classList.remove('active'); });
+      var form = document.getElementById('form-' + chip.dataset.type);
+      if (form) form.classList.add('active');
+    });
+  });
+
+  function toggleEventOther(select) {
+    document.getElementById('event-other-input').style.display = select.value === '' ? 'block' : 'none';
+  }
+</script>
+{% endblock %}

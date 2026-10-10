@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}設定 - 接客記録{% endblock %}
+{% block content %}
+<h1>設定</h1>
+
+<p class="page-sub">期間管理</p>
+<div class="card">
+  {% if period and period.start_date and period.end_date %}
+    <div class="card-title">今の期間</div>
+    <form method="post" action="{{ url_for('routes.update_period') }}">
+      <label for="current_start_date">開始日</label>
+      <input type="date" id="current_start_date" name="start_date" value="{{ period.start_date.isoformat() }}" required>
+
+      <label for="current_end_date">締め日</label>
+      <input type="date" id="current_end_date" name="end_date" value="{{ period.end_date.isoformat() }}" required>
+
+      <button class="btn secondary" type="submit">今の期間を変更する</button>
+    </form>
+  {% else %}
+    <p class="empty">期間がまだ作成されていません</p>
+  {% endif %}
+</div>
+
+<form method="post" action="{{ url_for('routes.new_period') }}">
+  <label for="start_date">新しい期間の開始日</label>
+  <input type="date" id="start_date" name="start_date" required>
+
+  <label for="end_date">締め日</label>
+  <input type="date" id="end_date" name="end_date" required>
+
+  <button class="btn secondary" type="submit">新しい期間を開始する</button>
+</form>
+
+<p class="page-sub" style="margin-top:32px;">係の管理</p>
+
+<details class="accordion">
+  <summary>係の一覧・追加 <span class="chev">▸</span></summary>
+
+  {% for name in staff_names %}
+  <form method="post" action="{{ url_for('routes.rename_staff') }}" class="staff-row">
+    <input type="hidden" name="old_name" value="{{ name }}">
+    <input type="text" name="new_name" value="{{ name }}">
+    <button class="btn secondary" type="submit">保存</button>
+  </form>
+  {% endfor %}
+
+  <form method="post" action="{{ url_for('routes.add_staff') }}" class="staff-row" style="margin-top:16px;">
+    <input type="text" name="name" placeholder="新しい係名">
+    <button class="btn secondary" type="submit">＋ 追加</button>
+  </form>
+</details>
+
+<p class="page-sub" style="margin-top:32px;">見た目のテーマ</p>
+
+<form method="post">
+  <div class="theme-choice">
+    <label class="theme-card">
+      <input type="radio" name="theme" value="dark-gold" {{ 'checked' if current_theme == 'dark-gold' }} onchange="this.form.submit()">
+      <div class="theme-swatch dark-gold"></div>
+      <span>ダーク×ゴールド</span>
+    </label>
+    <label class="theme-card">
+      <input type="radio" name="theme" value="light-ink" {{ 'checked' if current_theme == 'light-ink' }} onchange="this.form.submit()">
+      <div class="theme-swatch light-ink"></div>
+      <span>ライト×インク</span>
+    </label>
+  </div>
+</form>
+
+<p class="page-sub" style="margin-top:32px;">ログイン情報</p>
+
+<form method="post" action="{{ url_for('routes.change_password') }}">
+  <label for="current_password">現在のパスワード</label>
+  <input type="password" id="current_password" name="current_password" required>
+
+  <label for="new_password">新しいパスワード</label>
+  <input type="password" id="new_password" name="new_password" required>
+
+  <label for="confirm_password">新しいパスワード（確認）</label>
+  <input type="password" id="confirm_password" name="confirm_password" required>
+
+  <button class="btn secondary" type="submit">パスワードを変更する</button>
+</form>
+
+<a class="btn secondary" href="{{ url_for('auth.logout') }}" style="margin-top:32px;">ログアウト</a>
+{% endblock %}

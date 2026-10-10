@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}入力 - 接客記録{% endblock %}
+{% block content %}
+<h1>来店を記録</h1>
+
+{% if plans %}
+<p class="page-sub" style="margin-top:0;">まだ記録していない予定</p>
+{% for row_number, plan in plans %}
+<a class="pending-card" href="{{ url_for('routes.input_form', plan_id=row_number) }}">
+  <div class="plabel">{{ plan.kind }}予定・{{ plan.date.isoformat() }}</div>
+  <div class="pname">{{ plan.name }}様</div>
+  <div class="psub">タップすると下のフォームに反映されます</div>
+</a>
+{% endfor %}
+{% endif %}
+
+<p class="page-sub">今日の接客を入力</p>
+
+<form method="post">
+  <input type="hidden" name="plan_id" value="{{ plan_id or '' }}">
+  <fieldset>
+    <div class="radio-row">
+      <label><input type="radio" name="customer_type" value="own" checked onchange="onCustomerTypeChange()"><span>自客</span></label>
+      <label><input type="radio" name="customer_type" value="other" onchange="onCustomerTypeChange()"><span>他客</span></label>
+    </div>
+  </fieldset>
+
+  <label for="date">日付</label>
+  <input type="date" id="date" name="date" value="{{ today }}" required>
+
+  <div id="other-only-1" style="display:none;">
+    <label for="staff_in_charge">係</label>
+    <select id="staff_in_charge" name="staff_in_charge" onchange="refreshKnownNames()">
+      {% for s in staff_names %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+
+  <label for="names">名前（複数はカンマ区切り）</label>
+  <input type="text" id="names" name="names" value="{{ prefill_name }}" list="known-names" placeholder="例: 田中,佐藤" autocomplete="off" required>
+
+  <div id="other-only-2" style="display:none;">
+    <label for="new_or_existing">新規既存</label>
+    <select id="new_or_existing" name="new_or_existing">
+      <option value="既存">既存</option>
+      <option value="新規">新規</option>
+    </select>
+  </div>
+
+  <label class="check-label">
+    <input type="checkbox" id="has_contact" name="has_contact" value="1">
+    <span>連絡先</span>
+  </label>
+
+  <label class="page-sub" style="margin:20px 0 4px; display:block;">同伴者</label>
+  <div id="companion-rows"></div>
+  <button type="button" class="btn secondary" style="margin-top:2px;" onclick="addCompanionRow()">＋ 同伴者を追加</button>
+
+  <label class="check-label" style="margin-top:20px;">
+    <input type="checkbox" id="accompanied" name="accompanied" value="1" onchange="toggleAccompanyNote()" {{ 'checked' if prefill_accompanied }}>
+    <span>同伴</span>
+  </label>
+
+  <div id="accompany-note-section" class="accompany-note" style="display:none;">
+    <div class="hint">同伴の詳細</div>
+    <textarea id="accompany_note" name="accompany_note" placeholder="例: 〇〇（お店の場所）で食事してから来店"></textarea>
+  </div>
+
+  <label for="sales_amount">売上（円）</label>
+  <input type="number" id="sales_amount" name="sales_amount" min="0" step="1" placeholder="例: 30000">
+
+  <label for="last_contact_date">最終連絡日</label>
+  <input type="date" id="last_contact_date" name="last_contact_date">
+
+  <label for="birthday">誕生日（MM-DD）</label>
+  <input type="text" id="birthday" name="birthday" placeholder="例: 08-10">
+
+  <label for="memo">メモ</label>
+  <textarea id="memo" name="memo"></textarea>
+
+  <button class="btn" type="submit">記録する</button>
+</form>
+
+<datalist id="known-names"></datalist>
+
+<script>
+const knownCustomers = {{ known_customers|tojson }};
+
+function currentPool() {
+  var isOther = document.querySelector('input[name="customer_type"]:checked').value === 'other';
+  if (!isOther) {
+    return knownCustomers.filter(function (c) { return c.is_own_customer; });
+  }
+  var staff = document.getElementById('staff_in_charge').value;
+  return knownCustomers.filter(function (c) { return !c.is_own_customer && c.staff_in_charge === staff; });
+}
+
+function contactFor(name) {
+  var match = currentPool().find(function (c) { return c.name === name; });
+  return match ? match.has_contact : null;
+}
+
+function refreshKnownNames() {
+  var datalist = document.getElementById('known-names');
+  datalist.innerHTML = '';
+  currentPool().forEach(function (c) {
+    var opt = document.createElement('option');
+    opt.value = c.name;
+    datalist.appendChild(opt);
+  });
+}
+
+function toggleAccompanyNote() {
+  var checked = document.getElementById('accompanied').checked;
+  document.getElementById('accompany-note-section').style.display = checked ? 'block' : 'none';
+}
+
+function onCustomerTypeChange() {
+  var isOther = document.querySelector('input[name="customer_type"]:checked').value === 'other';
+  document.getElementById('other-only-1').style.display = isOther ? 'block' : 'none';
+  document.getElementById('other-only-2').style.display = isOther ? 'block' : 'none';
+  refreshKnownNames();
+}
+
+document.getElementById('names').addEventListener('input', function () {
+  var val = this.value.trim();
+  if (val.indexOf(',') === -1) {
+    var known = contactFor(val);
+    if (known !== null) {
+      document.getElementById('has_contact').checked = known;
+    }
+  }
+});
+
+var companionIndex = 0;
+function addCompanionRow() {
+  var container = document.getElementById('companion-rows');
+  var i = companionIndex++;
+  var row = document.createElement('div');
+  row.className = 'companion-row';
+  row.innerHTML =
+    '<input type="text" name="companion_name_' + i + '" list="known-names" autocomplete="off" placeholder="同伴者の名前" style="margin-bottom:6px;">' +
+    '<div style="display:flex; align-items:center; justify-content:space-between;">' +
+    '<label class="check-label" style="margin:0;"><input type="checkbox" name="companion_contact_' + i + '" value="1"><span>連絡先</span></label>' +
+    '<button type="button" class="btn secondary" style="width:auto; margin:0; padding:8px 14px;" onclick="this.closest(\'.companion-row\').remove()">削除</button>' +
+    '</div>';
+  container.appendChild(row);
+
+  var nameInput = row.querySelector('input[type="text"]');
+  var contactCheckbox = row.querySelector('input[type="checkbox"]');
+  nameInput.addEventListener('input', function () {
+    var known = contactFor(this.value.trim());
+    if (known !== null) {
+      contactCheckbox.checked = known;
+    }
+  });
+}
+
+onCustomerTypeChange();
+toggleAccompanyNote();
+</script>
+{% endblock %}
